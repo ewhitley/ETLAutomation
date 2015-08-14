@@ -1,0 +1,77 @@
+--DROP TABLE cozyroc.etl_groups
+--DROP TABLE cozyroc.etl_tables
+--DROP TABLE cozyroc.etl_group_tables
+
+--create a test schema
+CREATE SCHEMA cozyroc AUTHORIZATION dbo
+GO 
+
+--this is our "group" table
+--EX: HR
+CREATE TABLE cozyroc.etl_groups (
+	group_id int IDENTITY(1,1) NOT NULL,
+	group_nm varchar(100) NOT NULL,
+	group_dsc varchar(255)
+CONSTRAINT [PK_cozyroc_etl_groups_group_id] PRIMARY KEY CLUSTERED 
+(
+	[group_id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+--this is our "table" table
+--EX: employees, addresses, etc.
+CREATE TABLE cozyroc.etl_tables (
+	table_id int IDENTITY(1,1) NOT NULL,
+	table_nm varchar(100) NOT NULL,
+	table_dsc varchar(255)
+CONSTRAINT [PK_cozyroc_etl_tables_table_id] PRIMARY KEY CLUSTERED 
+(
+	[table_id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+--this is our associative table to store
+--  the mapping from group::table
+--  I'm using this in the example because in later
+--  posts we'll allow the table to be "grouped" 
+--  multiple times
+CREATE TABLE cozyroc.etl_group_tables (
+	group_table_id int IDENTITY(1,1),
+	group_id int NOT NULL,
+	table_id int NOT NULL
+CONSTRAINT [PK_cozyroc_etl_group_tables_group_table_id] PRIMARY KEY CLUSTERED 
+(
+	[group_table_id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+--insert a sample group
+INSERT INTO cozyroc.etl_groups (group_nm, group_dsc) values ('HR', 'HR Group')
+
+--insert some sample tables
+INSERT INTO cozyroc.etl_tables (table_nm, table_dsc) values ('Employees', 'Employees Table')
+INSERT INTO cozyroc.etl_tables (table_nm, table_dsc) values ('Departments', 'Departments Table')
+INSERT INTO cozyroc.etl_tables (table_nm, table_dsc) values ('Addresses', 'Addresses Table')
+
+--blindly cross join everything
+INSERT INTO cozyroc.etl_group_tables (group_id, table_id)
+SELECT 
+	g.group_id, t.table_id
+FROM
+	cozyroc.etl_groups g,
+	cozyroc.etl_tables t
+
+--now let's also create a logging table
+-- this is a placeholder for more complex
+-- operations
+CREATE TABLE cozyroc.parallel_test (
+	log_id int IDENTITY(1,1) NOT NULL,
+	group_table_id int NOT NULL,
+	group_id int NOT NULL,
+	table_id int NOT NULL,
+	execution_dts datetime2(7) DEFAULT GETDATE()
+CONSTRAINT [PK_cozyroc_parallel_test_log_id] PRIMARY KEY CLUSTERED 
+(
+	[log_id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
